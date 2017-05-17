@@ -24,7 +24,7 @@ style = Lang.emptyDef
     , Tok.identLetter     = alphaNum <|> oneOf "_'"
     , Tok.opStart         = Tok.opLetter style
     , Tok.opLetter        = oneOf ":!#$%&*+./<=>?@\\^|-~"
-    , Tok.reservedOpNames = []
+    , Tok.reservedOpNames = ["+", "-", "==", "!="]
     , Tok.reservedNames   = ["let", "load", "save", "if", "else"]
     , Tok.caseSensitive   = True
     }
@@ -64,7 +64,7 @@ factor :: Parser Expr
 factor = constant <|> var <|> parens expr
 
 infixOp :: T.Text -> (a -> a -> a) -> Parser (a -> a -> a)
-infixOp x f = reserved x >> return f
+infixOp x f = reservedOp x >> return f
 
 cmpop :: Parser (Expr -> Expr -> Expr)
 cmpop = infixOp "==" Eql <|> infixOp "!=" Neq
@@ -91,12 +91,8 @@ ifstmt = do
     b <- block
     reserved "}"
     (do
-       eb <- ifelse
+       eb <- ifelse <|> elseif
        return (IfEl e b eb))
-     <|>
-     (do
-        oif <- elseif
-        return (Elif e b oif))
      <|>
      return (IfIf e b)
 
@@ -109,10 +105,11 @@ ifelse = do
     reserved "}"
     return b
 
-elseif :: Parser IfStmt
+elseif :: Parser Block
 elseif = do
     try $ reserved "else"
-    ifstmt
+    is <- ifstmt
+    return [If is]
 
 decl :: Parser Statement
 decl = do
@@ -124,7 +121,7 @@ decl = do
 assign :: Parser Statement
 assign = do
     var <- ident
-    reserved "="
+    reservedOp "="
     e <- expr
     reserved ";"
     return (Assign var e)

@@ -14,7 +14,6 @@ data Statement = VarDecl Name
 
 data IfStmt = IfIf Expr Block
             | IfEl Expr Block Block
-            | Elif Expr Block IfStmt
     deriving (Show, Eq)
 
 data Expr = Var Name

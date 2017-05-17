@@ -3,11 +3,15 @@ module Lib
     ) where
 
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
+import System.Environment
 import Parser (parseProg)
-import Control.Monad (forever)
+import TAC (fuck)
 
 someFunc :: IO ()
-someFunc = forever $ do
-  putStr "> "
-  a <- getLine
-  print $ parseProg (T.pack a)
+someFunc = do
+    [f] <- getArgs
+    a <- T.readFile f
+    case parseProg a of
+      Left err -> print err
+      Right prog -> fuck prog
