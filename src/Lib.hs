@@ -6,7 +6,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import System.Environment
 import Parser (parseProg)
-import TAC (fuck)
+import TAC (ast2tac)
 
 someFunc :: IO ()
 someFunc = do
@@ -14,4 +14,4 @@ someFunc = do
     a <- T.readFile f
     case parseProg a of
       Left err -> print err
-      Right prog -> fuck prog
+      Right prog -> mapM_ print $ ast2tac prog

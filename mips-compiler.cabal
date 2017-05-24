@@ -19,9 +19,13 @@ library
                      , Syntax
                      , Parser
                      , TAC
+                     , Block
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , text
+                     , containers
+                     , hoopl
+                     , mtl
   default-language:    Haskell2010
 
 executable mips-compiler-exe
