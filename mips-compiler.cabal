@@ -19,7 +19,8 @@ library
                      , Syntax
                      , Parser
                      , TAC
-                     , Block
+                     , IR
+                     , TAC2IR
   build-depends:       base >= 4.7 && < 5
                      , parsec
                      , text
