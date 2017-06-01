@@ -29,23 +29,18 @@ varHasLit :: FwdTransfer Node ConstFact
 varHasLit = mkFTransfer ft
     where
   ft :: Node e x -> ConstFact -> Fact x ConstFact
-  ft (Label _)            f = f
-  ft (Assign x (Num k))   f = Map.insert x (PElem k) f
-  ft (Assign x _)         f = Map.insert x Top f
-  ft (Save _ _)           f = f
-  ft (Load x _)           f = Map.insert (Act x) Top f
-  ft (Jump l)             f = mapSingleton l f
-  ft (Cond (Variable x) tl fl) f
-    = mkFactBase constLattice
-           [(tl, Map.insert x (PElem 0)  f),
-            (fl, Map.insert x (PElem 0) f)]
-  ft (Cond _ tl fl) f
-    = mkFactBase constLattice [(tl, f), (fl, f)]
-  ft Return              _ = mapEmpty
-  ft Add{} f = f
-  ft Sub{} f = f
-  ft Eql{} f = f
-  ft Neq{} f = f
+  ft (Label _) f          = f
+  ft (Assign x (Num k)) f = Map.insert x (PElem k) f
+  ft (Assign x _) f       = Map.insert x Top f
+  ft (Save _ _) f         = f
+  ft (Load x _) f         = Map.insert (Act x) Top f
+  ft (Jump l) f           = mapSingleton l f
+  ft (Cond _ tl fl) f     = mkFactBase constLattice [(tl, f), (fl, f)]
+  ft Return _             = mapEmpty
+  ft Add{} f              = f
+  ft Sub{} f              = f
+  ft Eql{} f              = f
+  ft Neq{} f              = f
 
 insnToG :: Insn e x -> Graph Insn e x
 insnToG n@(Label _)    = mkFirst n
@@ -109,7 +104,7 @@ simplify = deepFwdRw simp
   simp node _ = return $ insnToG <$> s_node node
 
   s_node :: Node e x -> Maybe (Node e x)
-  s_node (Cond (Num n) t f) = Just $ Jump (if n == 1 then t else f)
+  s_node (Cond (Num n) t f) = Just $ Jump (if n == 0 then t else f)
   s_node (Add name (Num n1) (Num n2)) = Just $ Assign name $ Num $ n1 + n2
   s_node (Sub name (Num n1) (Num n2)) = Just $ Assign name $ Num $ n1 - n2
   s_node (Eql name (Num n1) (Num n2)) = Just $ Assign name $ Num $ if n1 == n2 then 1 else 0
