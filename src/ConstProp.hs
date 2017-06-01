@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Wall -fno-warn-name-shadowing #-}
 {-# LANGUAGE ScopedTypeVariables, GADTs #-}
-module ConstProp (optTest) where
+module ConstProp (constPropPass) where
 
 import qualified Data.Map as Map
 
@@ -116,9 +116,3 @@ constPropPass = FwdPass
     { fp_lattice = constLattice
     , fp_transfer = varHasLit
     , fp_rewrite = constProp `thenFwdRw` simplify }
-
-optTest :: M Proc -> M Proc
-optTest mproc = do
-    proc@Proc { entry=entry, body=body } <- mproc
-    (body1,  _, _) <- analyzeAndRewriteFwd constPropPass (JustC [entry]) body mapEmpty
-    return $ proc { body = body1 }

@@ -7,7 +7,7 @@ import System.Environment
 import Parser (parseProg)
 import TAC (ast2tac)
 import TAC2IR (tacToir, seeProc)
-import ConstProp (optTest)
+import Optimize
 import Compiler.Hoopl
 
 someFunc :: IO ()
@@ -18,4 +18,4 @@ someFunc = do
       Left err -> print err
       Right prog -> let graph = tacToir $ ast2tac prog in
                         seeProc graph >>
-                        (print . runSimpleUniqueMonad . runWithFuel 999 . optTest . fmap snd) graph
+                        (print . runSimpleUniqueMonad . runWithFuel 999 . optimize . fmap snd) graph
