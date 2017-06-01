@@ -8,6 +8,8 @@ import System.Environment
 import Parser (parseProg)
 import TAC (ast2tac)
 import TAC2IR (tacToir, seeProc, tacToblk)
+import ConstProp (optTest)
+import Compiler.Hoopl
 
 someFunc :: IO ()
 someFunc = do
@@ -15,4 +17,6 @@ someFunc = do
     a <- T.readFile f
     case parseProg a of
       Left err -> print err
-      Right prog -> (seeProc . tacToir . ast2tac) prog
+      Right prog -> let graph = tacToir $ ast2tac prog in
+                        seeProc graph >>
+                        (print . runSimpleUniqueMonad . runWithFuel 999 . optTest . fmap snd) graph

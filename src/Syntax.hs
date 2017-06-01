@@ -40,7 +40,7 @@ instance Show Assignee where
 
 data LValue = Act Name
             | Tmp Int
-            deriving (Eq)
+            deriving (Eq, Ord)
 
 instance Show LValue where
     show (Act name) = T.unpack name
