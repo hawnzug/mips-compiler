@@ -25,9 +25,6 @@ constLattice = DataflowLattice
                then (NoChange, PElem new)
                else (SomeChange, Top)
 
-initFact :: [Var] -> ConstFact
-initFact vars = Map.fromList [(v, Top) | v <- vars]
-
 varHasLit :: FwdTransfer Node ConstFact
 varHasLit = mkFTransfer ft
     where
@@ -126,10 +123,7 @@ constPropPass = FwdPass
     , fp_rewrite = constProp `thenFwdRw` simplify }
 
 optTest :: M Proc -> M Proc
-optTest aproc = aproc >>= optProc
-  where
-    optProc proc@Proc {entry=entry, body=body} =
-      do { (body',  _, _) <- analyzeAndRewriteFwd fwd (JustC [entry]) body
-                             (mapSingleton entry (initFact []))
-         ; return $ proc { body = body' } }
-    fwd  = constPropPass
+optTest mproc = do
+    proc@Proc { entry=entry, body=body } <- mproc
+    (body1,  _, _) <- analyzeAndRewriteFwd constPropPass (JustC [entry]) body mapEmpty
+    return $ proc { body = body1 }

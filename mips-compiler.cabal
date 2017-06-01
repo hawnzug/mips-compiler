@@ -29,6 +29,7 @@ library
                      , hoopl
                      , mtl
   default-language:    Haskell2010
+  ghc-options:         -Wall
 
 executable mips-compiler-exe
   hs-source-dirs:      app

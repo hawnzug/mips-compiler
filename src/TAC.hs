@@ -3,8 +3,6 @@ module TAC where
 
 import           Control.Arrow
 import           Control.Monad.State
-import qualified Data.Map            as M
-import qualified Data.Text           as T
 import           Syntax
 
 transBlk :: Block -> State ([IR], Int) ()
@@ -29,11 +27,15 @@ one (If (IfEl cond ifblk elseblk)) = do
     putIRs [Ijmp jmpLabel, Ilabel elseLabel]
     transBlk elseblk
     putIRs [Ijmp jmpLabel, Ilabel jmpLabel]
-        where (cond_name, pre) = gen cond
 
 one (Load name expr) = do
     putIRs irs
     putIRs [Iload name ret]
+        where (ret, irs) = gen expr
+
+one (Save name expr) = do
+    putIRs irs
+    putIRs [Isave name ret]
         where (ret, irs) = gen expr
 
 fuckHlint :: Expr -> State ([IR], Int) Label
@@ -47,21 +49,21 @@ fuckHlint cond = do
 
 gen :: Expr -> (Assignee, [IR])
 gen expr = second fst $ runState (gexpr expr) ([], 0)
+    where
+        gexpr :: Expr -> State ([IR], Int) Assignee
+        gexpr (Var name)  = return (Variable (Act name))
+        gexpr (Const x)   = return (Num x)
+        gexpr (Add e1 e2) = binop Iadd e1 e2
+        gexpr (Sub e1 e2) = binop Isub e1 e2
+        gexpr (Eql e1 e2) = binop Ieql e1 e2
+        gexpr (Neq e1 e2) = binop Ineq e1 e2
 
-gexpr :: Expr -> State ([IR], Int) Assignee
-gexpr (Var name)  = return (Variable (Act name))
-gexpr (Const x)   = return (Num x)
-gexpr (Add e1 e2) = binop Iadd e1 e2
-gexpr (Sub e1 e2) = binop Isub e1 e2
-gexpr (Eql e1 e2) = binop Ieql e1 e2
-gexpr (Neq e1 e2) = binop Ineq e1 e2
-
-binop constr e1 e2 = do
-    name1 <- gexpr e1
-    name2 <- gexpr e2
-    tmp <- genTemp
-    putIRs [constr tmp name1 name2]
-    return (Variable tmp)
+        binop constr e1 e2 = do
+            name1 <- gexpr e1
+            name2 <- gexpr e2
+            tmp <- genTemp
+            putIRs [constr tmp name1 name2]
+            return (Variable tmp)
 
 genTemp :: State ([IR], Int) LValue
 genTemp = fmap Tmp genSuc

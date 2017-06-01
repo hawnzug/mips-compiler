@@ -2,12 +2,11 @@ module Lib
     ( someFunc
     ) where
 
-import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import System.Environment
 import Parser (parseProg)
 import TAC (ast2tac)
-import TAC2IR (tacToir, seeProc, tacToblk)
+import TAC2IR (tacToir, seeProc)
 import ConstProp (optTest)
 import Compiler.Hoopl
 
