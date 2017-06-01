@@ -4,8 +4,9 @@ module ConstProp (optTest) where
 
 import qualified Data.Map as Map
 
-import Compiler.Hoopl
-import Syntax(Assignee(..), LValue)
+import Compiler.Hoopl hiding ((<*>))
+import Syntax(Assignee(..), LValue(..))
+import Data.Maybe (fromMaybe)
 import IR
 
 type Node = Insn
@@ -35,7 +36,7 @@ varHasLit = mkFTransfer ft
   ft (Assign x (Num k))   f = Map.insert x (PElem k) f
   ft (Assign x _)         f = Map.insert x Top f
   ft (Save _ _)           f = f
-  ft (Load _ _)           f = f
+  ft (Load x _)           f = Map.insert (Act x) Top f
   ft (Jump l)             f = mapSingleton l f
   ft (Cond (Variable x) tl fl) f
     = mkFactBase constLattice
@@ -44,10 +45,6 @@ varHasLit = mkFTransfer ft
   ft (Cond _ tl fl) f
     = mkFactBase constLattice [(tl, f), (fl, f)]
   ft Return              _ = mapEmpty
-  ft (Add x (Num n1) (Num n2)) f = Map.insert x (PElem (n1 + n2)) f
-  ft (Sub x (Num n1) (Num n2)) f = Map.insert x (PElem (n1 - n2)) f
-  ft (Eql x (Num n1) (Num n2)) f = Map.insert x (PElem (if n1 == n2 then 1 else 0)) f
-  ft (Neq x (Num n1) (Num n2)) f = Map.insert x (PElem (if n1 == n2 then 0 else 1)) f
   ft Add{} f = f
   ft Sub{} f = f
   ft Eql{} f = f
@@ -77,17 +74,17 @@ constProp = mkFRewrite cp
     mapVN _ (Label _) = Nothing
     mapVN f (Assign name (Variable v)) = fmap (Assign name) (f v)
     mapVN _ Assign{} = Nothing
-    mapVN f (Add name a1 a2) = detect f Add (+) name a1 a2
-    mapVN f (Sub name a1 a2) = detect f Sub (-) name a1 a2
-    mapVN f (Eql name a1 a2) = detect f Eql (\x y -> if x == y then 1 else 0) name a1 a2
-    mapVN f (Neq name a1 a2) = detect f Neq (\x y -> if x /= y then 1 else 0) name a1 a2
+    mapVN f (Add name a1 a2) = detect f (Add name) a1 a2
+    mapVN f (Sub name a1 a2) = detect f (Sub name) a1 a2
+    mapVN f (Eql name a1 a2) = detect f (Eql name) a1 a2
+    mapVN f (Neq name a1 a2) = detect f (Neq name) a1 a2
     mapVN _ (Jump _)  = Nothing
-    mapVN f (Save name (Variable v))  = case f v of
-                                          Just n -> Just (Save name n)
-                                          Nothing -> Nothing
-    mapVN f (Load name (Variable v))  = case f v of
-                                          Just n -> Just (Load name n)
-                                          Nothing -> Nothing
+    mapVN f (Save name (Variable v)) = case f v of
+                                         Just n -> Just (Save name n)
+                                         Nothing -> Nothing
+    mapVN f (Load name (Variable v)) = case f v of
+                                         Just n -> Just (Load name n)
+                                         Nothing -> Nothing
     mapVN f (Cond (Variable v) l1 l2) = case f v of
                                           Just n -> Just (Cond n l1 l2)
                                           Nothing -> Nothing
@@ -96,21 +93,12 @@ constProp = mkFRewrite cp
     mapVN _ Load{} = Nothing
     mapVN _ Return  = Nothing
 
-    detect f constr op name (Variable v1) (Variable v2) =
-        case (f v1, f v2) of
-          (Just (Num n1), Just (Num n2)) -> Just (Assign name (Num (op n1 n2)))
-          (Just n1, Nothing) -> Just (constr name n1 (Variable v2))
-          (Nothing, Just n2) -> Just (constr name (Variable v1) n2)
-          _ -> Nothing
-    detect f _ op name (Variable v) (Num n2) =
-        case f v of
-          Just (Num n1) -> Just (Assign name (Num (op n1 n2)))
-          _ -> Nothing
-    detect f _ op name (Num n1) (Variable v) =
-        case f v of
-          Just (Num n2) -> Just (Assign name (Num (op n1 n2)))
-          _ -> Nothing
-    detect _ _ op name (Num n1) (Num n2) = Just (Assign name (Num (op n1 n2)))
+    detect f constr e1 e2 =
+        case (help e1, help e2) of
+          (Nothing, Nothing) -> Nothing
+          (v1, v2) -> Just $ constr (fromMaybe e1 v1) (fromMaybe e2 v2)
+        where help (Num _) = Nothing
+              help (Variable v) = f v
 
     lookup :: ConstFact -> Var -> Maybe Assignee
     lookup f x = case Map.lookup x f of
