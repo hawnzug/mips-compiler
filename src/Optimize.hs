@@ -5,6 +5,7 @@ import IR(M, Proc(..), Insn(..))
 import ConstProp
 import Live
 import EmptyBlock
+import JoinBlock
 
 import Compiler.Hoopl
 
@@ -15,7 +16,7 @@ optimize mproc = do
     (body2, _, _) <- analyzeAndRewriteBwd livenessPass   (JustC [entry0]) body1 mapEmpty
     (body3, _, _) <- analyzeAndRewriteBwd emptyBlockPass (JustC [entry0]) body2 mapEmpty
     (body4, _, _) <- analyzeAndRewriteFwd justFwdPass    (JustC [entry0]) body3 mapEmpty
-    return $ proc { body = body4 }
+    return $ proc { body = joinBlock body4 }
 
 type NoFact = ()
 noLattice :: DataflowLattice NoFact

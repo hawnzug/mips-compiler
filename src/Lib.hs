@@ -16,6 +16,7 @@ someFunc = do
     a <- T.readFile f
     case parseProg a of
       Left err -> print err
-      Right prog -> let graph = tacToir $ ast2tac prog in
-                        seeProc graph >>
-                        (print . runSimpleUniqueMonad . runWithFuel 999 . optimize . fmap snd) graph
+      Right prog -> let graph = tacToir $ ast2tac prog
+                        proc = (runSimpleUniqueMonad . runWithFuel 999 . optimize . fmap snd) graph
+                     in do seeProc graph
+                           print proc
